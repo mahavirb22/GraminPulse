@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F8F9FA;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .bento-card {
+    @apply bg-white rounded-2xl border border-secondary-container shadow-[0_4px_12px_rgba(0,56,32,0.05)] transition-all duration-200;
+  }
+  
+  .bento-card-interactive {
+    @apply bento-card hover:shadow-[0_6px_16px_rgba(0,56,32,0.08)] active:scale-[0.98] cursor-pointer;
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 1.5rem;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.chart-path-in {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 2s ease-out forwards;
+}
+
+.chart-path-out {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 2s ease-out 0.5s forwards;
+}
