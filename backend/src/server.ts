@@ -3,6 +3,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import apiRouter from './routes/api';
+import { startTelemetrySimulator } from './services/telemetrySimulator';
 
 dotenv.config();
 
@@ -39,6 +40,9 @@ const startServer = async () => {
     console.log('Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
     console.log(`Successfully connected to MongoDB at ${MONGODB_URI}`);
+
+    // Start 10-second Mock IoT Telemetry Simulator service
+    startTelemetrySimulator(10000);
 
     app.listen(PORT, () => {
       console.log(`⚡️ [GraminPulse Server]: Running on http://localhost:${PORT}`);
