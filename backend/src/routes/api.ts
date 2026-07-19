@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { getAllEnterprises, getEnterpriseById } from '../controllers/enterpriseController';
 import { createTransaction } from '../controllers/transactionController';
 import { getLiveTelemetry, triggerAnomaly } from '../controllers/telemetryController';
+import { getEnterpriseAdvisory } from '../controllers/analyticsController';
 import { seedDatabase } from '../seed';
 
 const router = Router();
@@ -16,6 +17,9 @@ router.post('/transactions', createTransaction);
 // IoT Telemetry routes
 router.get('/telemetry/live/:enterpriseId', getLiveTelemetry);
 router.post('/telemetry/trigger-anomaly', triggerAnomaly);
+
+// Analytics & Explainable AI (XAI) Advisory routes
+router.get('/analytics/advisory/:enterpriseId', getEnterpriseAdvisory);
 
 // Seed route (Helper endpoint for hackathon demo initialization)
 router.post('/seed', async (_req: Request, res: Response) => {
