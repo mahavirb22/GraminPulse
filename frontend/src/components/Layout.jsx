@@ -1,21 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { NotificationModal } from './NotificationModal';
+
+export const COMMON_FARMER_AVATAR =
+  'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=250&q=80';
 
 /**
- * Layout wrapper handling view state and responsive navigation.
+ * Layout wrapper handling view state, common user profile, notification history modal, and logout.
  */
-export const Layout = ({ activeView, setActiveView, children }) => {
+export const Layout = ({
+  activeView,
+  setActiveView,
+  user,
+  onLogout,
+  transactions = [],
+  children,
+}) => {
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'home' },
     { id: 'hub', label: 'Field Hub', icon: 'view_cozy' },
     { id: 'profile', label: 'Risk Profile', icon: 'shield_person' },
   ];
 
+  const userName = user?.name || 'Ramesh Kumar';
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-on-background">
       {/* Desktop Navigation Top AppBar */}
       <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-sm border-b border-outline-variant/20 hidden md:flex items-center justify-between px-6 h-16">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveView('dashboard')}>
-          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-bold text-xs">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => setActiveView('dashboard')}
+        >
+          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-bold text-xs shadow-sm">
             GP
           </div>
           <span className="font-headline text-xl font-bold text-primary tracking-tight">
@@ -42,17 +60,31 @@ export const Layout = ({ activeView, setActiveView, children }) => {
         </nav>
 
         <div className="flex items-center gap-4">
-          <button className="relative p-2 text-on-surface-variant hover:bg-primary-container/10 rounded-full transition-colors">
+          <button
+            onClick={() => setIsNotificationOpen(true)}
+            className="relative p-2 text-on-surface-variant hover:bg-primary-container/10 rounded-full transition-colors active:scale-95"
+            title="View Activity & Transaction History"
+          >
             <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
           </button>
-          <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/30">
+
+          <div className="flex items-center gap-3 pl-3 border-l border-outline-variant/30">
             <img
-              className="w-8 h-8 rounded-full object-cover border border-outline-variant/30"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFZvqEKTFQTvFZtqcbDJ5nh61b4fFoZreiuKwCjlkFlaFF6fqUKnFcl97Zp3mHDWMXRiZ3hU8i8ZyHIILwcsARyTXv7kY6u6lOn1ifeO2yr2wuyKXdGxovcu6DYihoiycySydI3DfU3wSqtdJlfbUILTngAl9gH0Hkg_is6lwT0TKvCI80pDcO04xold-okmg5s984TXHB9cSlmkX2luTOyi80RdLDFfn5JZTgdkYB_flAMIpG1GlmoVdJP_zpc1I8yiOKlwwHmoY"
-              alt="User profile"
+              className="w-8 h-8 rounded-full object-cover border border-outline-variant/40 shadow-sm"
+              src={COMMON_FARMER_AVATAR}
+              alt="Farmer profile"
             />
-            <span className="font-label text-xs font-semibold text-on-surface">Ramesh Kumar</span>
+            <span className="font-label text-xs font-semibold text-on-surface">{userName}</span>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="text-xs font-label text-error hover:bg-error-container/20 px-2 py-1 rounded-md transition-colors flex items-center gap-1 ml-1"
+                title="Sign Out"
+              >
+                <span className="material-symbols-outlined text-sm">logout</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -68,15 +100,23 @@ export const Layout = ({ activeView, setActiveView, children }) => {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="relative p-2 text-on-surface-variant">
+          <button
+            onClick={() => setIsNotificationOpen(true)}
+            className="relative p-2 text-on-surface-variant"
+          >
             <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
           </button>
           <img
             className="w-8 h-8 rounded-full object-cover border border-outline-variant/30"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCFZvqEKTFQTvFZtqcbDJ5nh61b4fFoZreiuKwCjlkFlaFF6fqUKnFcl97Zp3mHDWMXRiZ3hU8i8ZyHIILwcsARyTXv7kY6u6lOn1ifeO2yr2wuyKXdGxovcu6DYihoiycySydI3DfU3wSqtdJlfbUILTngAl9gH0Hkg_is6lwT0TKvCI80pDcO04xold-okmg5s984TXHB9cSlmkX2luTOyi80RdLDFfn5JZTgdkYB_flAMIpG1GlmoVdJP_zpc1I8yiOKlwwHmoY"
-            alt="User profile"
+            src={COMMON_FARMER_AVATAR}
+            alt="Farmer profile"
           />
+          {onLogout && (
+            <button onClick={onLogout} className="p-1 text-error" title="Sign Out">
+              <span className="material-symbols-outlined text-sm">logout</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -103,6 +143,13 @@ export const Layout = ({ activeView, setActiveView, children }) => {
           );
         })}
       </nav>
+
+      {/* Notification & Activity History Modal */}
+      <NotificationModal
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        transactions={transactions}
+      />
     </div>
   );
 };

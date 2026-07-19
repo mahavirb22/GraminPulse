@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { RiskBadge } from '../components/RiskBadge';
+import { HistoryModal } from '../components/HistoryModal';
 
 export const EnterpriseRiskProfile = ({ enterprise, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   /**
    * Use effect hook to simulate fetching deep-dive enterprise risk data,
@@ -53,7 +55,7 @@ export const EnterpriseRiskProfile = ({ enterprise, onBack }) => {
           'Kisan Agro Co. presents an elevated risk profile due to a severe supply chain disruption and a missed invoice payment. Immediate field officer intervention is recommended to restructure December repayment schedules.',
       });
       setLoading(false);
-    }, 600);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [enterprise]);
@@ -208,7 +210,12 @@ export const EnterpriseRiskProfile = ({ enterprise, onBack }) => {
               </div>
             ))}
           </div>
-          <button className="mt-auto w-full py-2 bg-secondary-fixed text-primary font-label text-xs font-semibold rounded-xl hover:bg-secondary-fixed-dim transition-colors text-center border border-primary-fixed">
+
+          {/* Interactive View Full History Button */}
+          <button
+            onClick={() => setIsHistoryModalOpen(true)}
+            className="mt-auto w-full py-2 bg-secondary-fixed text-primary font-label text-xs font-semibold rounded-xl hover:bg-secondary-fixed-dim active:scale-98 transition-all text-center border border-primary-fixed cursor-pointer shadow-sm"
+          >
             View Full History
           </button>
         </div>
@@ -258,6 +265,13 @@ export const EnterpriseRiskProfile = ({ enterprise, onBack }) => {
           </div>
         </div>
       </div>
+
+      {/* Full Audit History Modal */}
+      <HistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        enterpriseName={profileData.name}
+      />
     </div>
   );
 };

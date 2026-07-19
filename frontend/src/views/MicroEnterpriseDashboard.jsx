@@ -3,54 +3,104 @@ import { ActionableAdvisory } from '../components/ActionableAdvisory';
 import { TelemetryWidget } from '../components/TelemetryWidget';
 import { TransactionModal } from '../components/TransactionModal';
 
-export const MicroEnterpriseDashboard = ({ onNavigateToProfile }) => {
+export const MicroEnterpriseDashboard = ({ onNavigateToProfile, user, transactions = [], onAddTransaction }) => {
   const [modalState, setModalState] = useState({ isOpen: false, type: 'income' });
   const [reportGenerated, setReportGenerated] = useState(false);
-  const [recentTransactions, setRecentTransactions] = useState([
-    { id: 1, type: 'income', amount: 42500, category: 'Milk Supply', date: 'Today, 09:30 AM' },
-    { id: 2, type: 'expense', amount: 3200, category: 'Cattle Feed', date: 'Yesterday' },
-  ]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [timeframe, setTimeframe] = useState('Last 30 Days');
+
+  const farmerName = user?.name || 'Ramesh Kumar';
 
   /**
-   * Placeholder API function to handle transaction submissions.
-   * Connects to Node.js / Express backend in full MERN stack.
+   * Handle transaction submission from modal.
    */
   const handleTransactionSubmit = async (transactionData) => {
-    console.log('[API Call Placeholder] Submitting transaction to backend:', transactionData);
-
-    // Simulate API network delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Update local state with new transaction
-    const newTx = {
-      id: Date.now(),
-      ...transactionData,
-      date: 'Just now',
-    };
-    setRecentTransactions((prev) => [newTx, ...prev]);
+    if (onAddTransaction) {
+      onAddTransaction(transactionData);
+    }
   };
 
+  /**
+   * Generate & download actual summary file.
+   */
   const handleGenerateReport = () => {
+    const reportText = `================================================
+GRAMINPULSE RURAL FINTECH UI - MONTHLY SUMMARY REPORT
+================================================
+Generated for: ${farmerName}
+Date: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}
+Enterprise: Ganga Dairy Coop (ID: #GP-8842)
+Location: Varanasi, UP
+------------------------------------------------
+FINANCIAL OVERVIEW:
+- Total Cash In:  ₹52,000 (+12% vs last month)
+- Total Cash Out: ₹9,500
+- Net Surplus:    ₹42,500
+- Status:         Stable
+
+IOT TELEMETRY DIAGNOSTICS:
+- Cold Storage Temp:  4.2°C (Target: 4.0°C - STABLE)
+- Milk Chiller Motor: Vibration Anomaly Detected (HIGH ALERT)
+
+AI ADVISORY SUMMARY:
+- Unexpected rain is predicted tomorrow afternoon. Cover outdoor grain storage immediately to prevent spoilage.
+- Inspect chiller motor vibration and prepare NABARD liquidity buffer.
+
+================================================
+Report powered by GraminPulse Explainable AI (XAI)
+================================================
+`;
+
+    const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `GraminPulse_Monthly_Summary_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     setReportGenerated(true);
     setTimeout(() => setReportGenerated(false), 3000);
+  };
+
+  /**
+   * Export CSV option in bento menu
+   */
+  const handleExportCSV = () => {
+    const csvContent = "data:text/csv;charset=utf-8,Date,Category,Type,Amount\nToday,Milk Supply,Income,42500\nYesterday,Cattle Feed,Expense,3200\n15 Jul,Govt Subsidy,Income,12000\n";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "CashFlow_Data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsMenuOpen(false);
   };
 
   return (
     <div className="px-5 py-4 max-w-7xl mx-auto flex flex-col gap-4 md:grid md:grid-cols-12 md:gap-6">
       {/* Welcome Header */}
-      <div className="col-span-12 mb-2">
-        <h1 className="font-headline text-3xl font-bold text-primary">Overview</h1>
-        <p className="font-body text-base text-on-surface-variant">
-          Here's your micro-enterprise financial & telemetry summary for today.
-        </p>
+      <div className="col-span-12 mb-2 flex justify-between items-end flex-wrap gap-2">
+        <div>
+          <h1 className="font-headline text-3xl font-bold text-primary">Overview</h1>
+          <p className="font-body text-base text-on-surface-variant">
+            Welcome back, <span className="font-semibold text-primary">{farmerName}</span>. Here's your enterprise summary.
+          </p>
+        </div>
+        <div className="bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full text-xs font-label font-semibold border border-primary-fixed-dim">
+          Ganga Dairy Coop (#GP-8842)
+        </div>
       </div>
 
       {/* Cash Flow Bento Card (8 Cols on Desktop) */}
-      <div className="bento-card col-span-12 lg:col-span-8 p-6 flex flex-col relative overflow-hidden">
+      <div className="bento-card col-span-12 lg:col-span-8 p-6 flex flex-col relative overflow-visible">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="font-label text-xs uppercase tracking-wider text-on-surface-variant mb-1 font-semibold">
-              Cash Flow
+              Cash Flow ({timeframe})
             </h2>
             <div className="font-headline text-3xl font-bold text-on-surface flex items-baseline gap-2">
               ₹42,500{' '}
@@ -59,9 +109,54 @@ export const MicroEnterpriseDashboard = ({ onNavigateToProfile }) => {
               </span>
             </div>
           </div>
-          <button className="text-primary p-1.5 bg-surface-container-low rounded-full hover:bg-surface-container transition-colors">
-            <span className="material-symbols-outlined">more_horiz</span>
-          </button>
+
+          {/* Three Dots Interactive Dropdown Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-primary p-1.5 bg-surface-container-low rounded-full hover:bg-surface-container transition-colors active:scale-95"
+              title="Timeframe Options"
+            >
+              <span className="material-symbols-outlined">more_horiz</span>
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 top-10 z-40 bg-white border border-outline-variant/30 rounded-xl shadow-xl p-2 w-48 font-label text-xs animate-fadeIn">
+                <button
+                  onClick={() => {
+                    setTimeframe('Last 30 Days');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low flex items-center justify-between ${
+                    timeframe === 'Last 30 Days' ? 'font-bold text-primary bg-primary-fixed/20' : 'text-on-surface'
+                  }`}
+                >
+                  Last 30 Days
+                  {timeframe === 'Last 30 Days' && <span className="material-symbols-outlined text-sm">check</span>}
+                </button>
+                <button
+                  onClick={() => {
+                    setTimeframe('Last 90 Days');
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low flex items-center justify-between ${
+                    timeframe === 'Last 90 Days' ? 'font-bold text-primary bg-primary-fixed/20' : 'text-on-surface'
+                  }`}
+                >
+                  Last 90 Days
+                  {timeframe === 'Last 90 Days' && <span className="material-symbols-outlined text-sm">check</span>}
+                </button>
+                <div className="w-full h-[1px] bg-outline-variant/20 my-1" />
+                <button
+                  onClick={handleExportCSV}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low text-primary font-semibold flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  Export CSV File
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Cash Flow SVG Chart */}
@@ -158,25 +253,28 @@ export const MicroEnterpriseDashboard = ({ onNavigateToProfile }) => {
           </span>
         </button>
 
+        {/* Generate & Download Report Button */}
         <button
           onClick={handleGenerateReport}
           className="bento-card p-4 flex items-center justify-between bg-primary-container text-on-primary-container hover:bg-primary transition-colors cursor-pointer group"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-on-primary-container/20 flex items-center justify-center text-primary-fixed">
-              <span className="material-symbols-outlined">receipt_long</span>
+              <span className="material-symbols-outlined">
+                {reportGenerated ? 'download_done' : 'receipt_long'}
+              </span>
             </div>
             <div className="text-left">
               <div className="font-label text-sm font-semibold text-on-primary-container">
-                {reportGenerated ? 'Report Ready!' : 'Generate Report'}
+                {reportGenerated ? 'Report Downloaded!' : 'Generate Report'}
               </div>
               <div className="font-label text-xs opacity-80">
-                {reportGenerated ? 'Downloaded summary PDF' : "This month's summary"}
+                {reportGenerated ? 'Saved Summary .txt File' : "Download this month's summary"}
               </div>
             </div>
           </div>
           <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
-            arrow_forward
+            download
           </span>
         </button>
 
@@ -187,11 +285,11 @@ export const MicroEnterpriseDashboard = ({ onNavigateToProfile }) => {
               Recent Logs
             </span>
             <span className="font-label text-xs text-primary font-semibold">
-              {recentTransactions.length} items
+              {transactions.length} items
             </span>
           </div>
           <div className="flex flex-col gap-2">
-            {recentTransactions.slice(0, 3).map((tx) => (
+            {transactions.slice(0, 3).map((tx) => (
               <div
                 key={tx.id}
                 className="flex justify-between items-center text-xs p-2 rounded-lg bg-surface-container-low"

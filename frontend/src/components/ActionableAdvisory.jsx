@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
- * ActionableAdvisory component using glassmorphism styling and audio action.
+ * ActionableAdvisory component using glassmorphism styling and Web Speech Synthesis audio playback.
  */
 export const ActionableAdvisory = ({
   tag = 'AI Advisory',
@@ -12,9 +12,45 @@ export const ActionableAdvisory = ({
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   const handleListenClick = () => {
-    setIsPlaying(!isPlaying);
-    if (onListen) onListen(!isPlaying);
+    if (!('speechSynthesis' in window)) {
+      alert('Speech synthesis is not supported by your browser.');
+      return;
+    }
+
+    if (isPlaying || window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      if (onListen) onListen(false);
+      return;
+    }
+
+    const textToSpeak = `${title}. ${description}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+      if (onListen) onListen(false);
+    };
+
+    utterance.onerror = () => {
+      setIsPlaying(false);
+      if (onListen) onListen(false);
+    };
+
+    setIsPlaying(true);
+    if (onListen) onListen(true);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -46,14 +82,14 @@ export const ActionableAdvisory = ({
           onClick={handleListenClick}
           className={`w-full md:w-auto flex items-center justify-center gap-2 font-label text-sm px-6 py-3 rounded-full transition-all shadow-sm flex-shrink-0 active:scale-95 ${
             isPlaying
-              ? 'bg-secondary-container text-on-secondary-container font-semibold'
+              ? 'bg-error text-on-error font-semibold animate-pulse'
               : 'bg-primary text-on-primary hover:bg-surface-tint'
           }`}
         >
           <span className="material-symbols-outlined">
-            {isPlaying ? 'pause_circle' : 'volume_up'}
+            {isPlaying ? 'stop_circle' : 'volume_up'}
           </span>
-          {isPlaying ? 'Playing Advice...' : 'Listen to Advice'}
+          {isPlaying ? 'Stop Audio' : 'Listen to Advice'}
         </button>
       </div>
     </div>
