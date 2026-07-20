@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 export const AuthScreen = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -94,11 +94,13 @@ export const AuthScreen = ({ onLoginSuccess }) => {
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-secondary-container/40 rounded-full blur-3xl pointer-events-none" />
 
       <div className="glass-panel max-w-md w-full p-8 shadow-2xl relative z-10 border border-white/60">
-        {/* Brand Header */}
+        {/* Brand Header with Logo */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-bold text-xl mb-3 shadow-md">
-            GP
-          </div>
+          <img
+            src="/logo.png"
+            alt="GraminPulse Logo"
+            className="w-16 h-16 object-contain mb-2 drop-shadow-md hover:scale-105 transition-transform"
+          />
           <h1 className="font-headline text-2xl font-bold text-primary tracking-tight">
             GraminPulse
           </h1>

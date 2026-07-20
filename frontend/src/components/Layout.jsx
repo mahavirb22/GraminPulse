@@ -3,7 +3,7 @@ import { UserAvatar } from './UserAvatar';
 import { NotificationModal } from './NotificationModal';
 
 /**
- * Layout wrapper handling view state, initial letter avatar, notification history modal, and logout.
+ * Layout wrapper handling view state, brand logo, initial letter avatar, notification history modal, and logout.
  */
 export const Layout = ({
   activeView,
@@ -28,12 +28,14 @@ export const Layout = ({
       {/* Desktop Navigation Top AppBar */}
       <header className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-sm border-b border-outline-variant/20 hidden md:flex items-center justify-between px-6 h-16">
         <div
-          className="flex items-center gap-3 cursor-pointer"
+          className="flex items-center gap-3 cursor-pointer group"
           onClick={() => setActiveView('dashboard')}
         >
-          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-bold text-xs shadow-sm">
-            GP
-          </div>
+          <img
+            src="/logo.png"
+            alt="GraminPulse Logo"
+            className="w-9 h-9 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+          />
           <span className="font-headline text-xl font-bold text-primary tracking-tight">
             GraminPulse
           </span>
@@ -87,9 +89,11 @@ export const Layout = ({
       {/* Mobile Top AppBar */}
       <div className="md:hidden flex items-center justify-between px-4 pt-4 pb-3 bg-surface sticky top-0 z-40 shadow-sm border-b border-outline-variant/20">
         <div className="flex items-center gap-2" onClick={() => setActiveView('dashboard')}>
-          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary font-bold text-xs">
-            GP
-          </div>
+          <img
+            src="/logo.png"
+            alt="GraminPulse Logo"
+            className="w-8 h-8 object-contain"
+          />
           <span className="font-headline text-lg font-bold text-primary tracking-tight">
             GraminPulse
           </span>
