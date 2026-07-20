@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const AuthScreen = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,18 +9,41 @@ export const AuthScreen = ({ onLoginSuccess }) => {
   const [location, setLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [touched, setTouched] = useState({ phone: false, password: false, fullName: false });
+
+  // Field validation rules
+  const phoneRegex = /^[6-9]\d{9}$/;
+  const passwordComplexityRegex = /^(?=.*[A-Za-z])(?=.*\d)/;
+
+  const isPhoneValid = phoneRegex.test(phone.replace(/\D/g, ''));
+  const isPasswordValid = password.length >= 6 && passwordComplexityRegex.test(password);
+  const isFullNameValid = fullName.trim().length >= 2;
+
+  // Real-time error messages
+  const phoneError = touched.phone && !isPhoneValid ? 'Must be a valid 10-digit mobile number starting with 6-9.' : '';
+  const passwordError =
+    touched.password && !isPasswordValid
+      ? 'Password must be at least 6 characters and include both letters and numbers.'
+      : '';
+  const fullNameError = !isLogin && touched.fullName && !isFullNameValid ? 'Full Name must be at least 2 characters.' : '';
+
+  const isFormValid = isLogin
+    ? isPhoneValid && isPasswordValid
+    : isPhoneValid && isPasswordValid && isFullNameValid;
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!phone || !password) {
-      setErrorMsg('Please enter your mobile number and password.');
-      return;
-    }
+    // Mark all fields as touched to trigger validation errors if empty
+    setTouched({ phone: true, password: true, fullName: true });
 
-    if (!isLogin && !fullName) {
-      setErrorMsg('Please enter your full name.');
+    if (!isFormValid) {
+      setErrorMsg('Please fix the form errors before submitting.');
       return;
     }
 
@@ -28,8 +51,8 @@ export const AuthScreen = ({ onLoginSuccess }) => {
 
     const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
     const payload = isLogin
-      ? { phone, password }
-      : { fullName, phone, password, sector, location };
+      ? { phone: phone.replace(/\D/g, ''), password }
+      : { fullName: fullName.trim(), phone: phone.replace(/\D/g, ''), password, sector, location: location.trim() };
 
     try {
       const response = await fetch(`http://localhost:5000${endpoint}`, {
@@ -42,15 +65,13 @@ export const AuthScreen = ({ onLoginSuccess }) => {
 
       if (response.ok && data.success) {
         setIsLoading(false);
-        onLoginSuccess(data.user);
+        onLoginSuccess(data);
       } else {
         setIsLoading(false);
-        setErrorMsg(data.message || 'Authentication failed. Please check your details.');
+        setErrorMsg(data.message || 'Authentication failed. Please check your credentials.');
       }
     } catch (err) {
-      console.warn('[Auth Network Warning] Backend API unreachable, executing local authentication fallback:', err);
-      
-      // Fallback for seamless UX if backend server is offline
+      console.warn('[Auth Network Warning] Backend API unreachable, executing local fallback:', err);
       setTimeout(() => {
         setIsLoading(false);
         const fallbackUser = {
@@ -60,9 +81,8 @@ export const AuthScreen = ({ onLoginSuccess }) => {
           phone,
           sector: isLogin ? 'Dairy' : sector,
           location: isLogin ? 'Varanasi, UP' : location || 'Varanasi, UP',
-          avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=250&q=80',
         };
-        onLoginSuccess(fallbackUser);
+        onLoginSuccess({ user: fallbackUser, isNewUser: !isLogin });
       }, 600);
     }
   };
@@ -94,6 +114,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
             onClick={() => {
               setIsLogin(true);
               setErrorMsg('');
+              setTouched({ phone: false, password: false, fullName: false });
             }}
             className={`flex-1 py-2 rounded-full font-label text-xs font-semibold transition-all ${
               isLogin
@@ -108,6 +129,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
             onClick={() => {
               setIsLogin(false);
               setErrorMsg('');
+              setTouched({ phone: false, password: false, fullName: false });
             }}
             className={`flex-1 py-2 rounded-full font-label text-xs font-semibold transition-all ${
               !isLogin
@@ -120,9 +142,9 @@ export const AuthScreen = ({ onLoginSuccess }) => {
         </div>
 
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-error-container text-on-error-container text-xs font-body flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm">error</span>
-            {errorMsg}
+          <div className="mb-4 p-3 rounded-xl bg-error-container text-on-error-container text-xs font-body flex items-start gap-2 animate-fadeIn">
+            <span className="material-symbols-outlined text-sm mt-0.5 shrink-0">error</span>
+            <span>{errorMsg}</span>
           </div>
         )}
 
@@ -130,22 +152,26 @@ export const AuthScreen = ({ onLoginSuccess }) => {
           {!isLogin && (
             <div>
               <label className="block text-xs font-label text-on-surface-variant mb-1 font-semibold">
-                Full Name
+                Full Name <span className="text-error">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
-                className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl font-body text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                onBlur={() => handleBlur('fullName')}
+                placeholder="Enter your full name (e.g. Mahavir Bhandari)"
+                className={`w-full px-4 py-2.5 bg-surface-container-lowest border rounded-xl font-body text-sm text-on-surface focus:outline-none transition-colors ${
+                  fullNameError ? 'border-error ring-1 ring-error' : 'border-outline-variant/40 focus:border-primary'
+                }`}
               />
+              {fullNameError && <p className="text-[11px] text-error mt-1 font-body">{fullNameError}</p>}
             </div>
           )}
 
           <div>
             <label className="block text-xs font-label text-on-surface-variant mb-1 font-semibold">
-              Mobile Number
+              Mobile Number <span className="text-error">*</span>
             </label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-label text-xs text-on-surface-variant font-semibold">
@@ -154,12 +180,17 @@ export const AuthScreen = ({ onLoginSuccess }) => {
               <input
                 type="tel"
                 required
+                maxLength={10}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter 10-digit mobile number"
-                className="w-full pl-12 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl font-body text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                onBlur={() => handleBlur('phone')}
+                placeholder="9876543210"
+                className={`w-full pl-12 pr-4 py-2.5 bg-surface-container-lowest border rounded-xl font-body text-sm text-on-surface focus:outline-none transition-colors ${
+                  phoneError ? 'border-error ring-1 ring-error' : 'border-outline-variant/40 focus:border-primary'
+                }`}
               />
             </div>
+            {phoneError && <p className="text-[11px] text-error mt-1 font-body">{phoneError}</p>}
           </div>
 
           {!isLogin && (
@@ -198,32 +229,40 @@ export const AuthScreen = ({ onLoginSuccess }) => {
 
           <div>
             <label className="block text-xs font-label text-on-surface-variant mb-1 font-semibold">
-              Password
+              Password <span className="text-error">*</span>
             </label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl font-body text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              onBlur={() => handleBlur('password')}
+              placeholder="Min 6 characters (letter & number)"
+              className={`w-full px-4 py-2.5 bg-surface-container-lowest border rounded-xl font-body text-sm text-on-surface focus:outline-none transition-colors ${
+                passwordError ? 'border-error ring-1 ring-error' : 'border-outline-variant/40 focus:border-primary'
+              }`}
             />
+            {passwordError && <p className="text-[11px] text-error mt-1 font-body">{passwordError}</p>}
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-primary text-on-primary font-label text-sm font-semibold rounded-full hover:bg-surface-tint active:scale-[0.98] transition-all shadow-md mt-2 flex items-center justify-center gap-2"
+            disabled={isLoading || (touched.phone && !isFormValid)}
+            className={`w-full py-3 font-label text-sm font-semibold rounded-full transition-all shadow-md mt-2 flex items-center justify-center gap-2 ${
+              isLoading || (touched.phone && !isFormValid)
+                ? 'bg-outline-variant/60 text-on-surface-variant/60 cursor-not-allowed'
+                : 'bg-primary text-on-primary hover:bg-surface-tint active:scale-[0.98]'
+            }`}
           >
             {isLoading ? (
               <>
                 <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                Processing...
+                Validating & Authenticating...
               </>
             ) : isLogin ? (
               'Sign In'
             ) : (
-              'Create Account'
+              'Create Secure Account'
             )}
           </button>
         </form>

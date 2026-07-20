@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
-import { Enterprise } from '../models/Enterprise';
+import { Enterprise, EnterpriseSector } from '../models/Enterprise';
+
+// Regex patterns for validation
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+const NAME_REGEX = /^[a-zA-Z\s\-']{2,50}$/;
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Za-z])(?=.*\d)/;
+const VALID_SECTORS: EnterpriseSector[] = ['Dairy', 'Poultry', 'Food Processing', 'Retail', 'Agriculture', 'Artisan'];
 
 /**
  * Helper to sanitize user object for client response (removes password hash)
@@ -22,25 +28,68 @@ const sanitizeUser = (user: any) => {
 
 /**
  * POST /api/auth/signup
- * Registers a new micro-enterprise user / farmer in MongoDB with hashed password
- * and automatically initializes a fresh Enterprise record for them.
+ * Registers a new micro-enterprise user / farmer in MongoDB with strict validations.
  */
 export const signup = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { fullName, phone, password, sector, location } = req.body;
+    let { fullName, phone, password, sector, location } = req.body;
 
-    if (!fullName || !phone || !password) {
+    // Type checking and basic presence check
+    if (typeof fullName !== 'string' || typeof phone !== 'string' || typeof password !== 'string') {
       res.status(400).json({
         success: false,
-        message: 'Full Name, Mobile Number, and Password are required.',
+        message: 'Invalid request payload. All fields must be strings.',
       });
       return;
     }
 
-    const cleanPhone = phone.trim();
+    fullName = fullName.trim();
+    phone = phone.replace(/\D/g, ''); // Strip non-digit characters
+    password = password.trim();
+    location = typeof location === 'string' ? location.trim() : 'Varanasi, UP';
+
+    // 1. Validate Full Name
+    if (!fullName || !NAME_REGEX.test(fullName)) {
+      res.status(400).json({
+        success: false,
+        message: 'Full Name must be between 2 and 50 characters and contain only letters and spaces.',
+      });
+      return;
+    }
+
+    // 2. Validate Indian Mobile Number (10 digits starting with 6, 7, 8, or 9)
+    if (!phone || !PHONE_REGEX.test(phone)) {
+      res.status(400).json({
+        success: false,
+        message: 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).',
+      });
+      return;
+    }
+
+    // 3. Validate Password Complexity
+    if (password.length < 6 || password.length > 128) {
+      res.status(400).json({
+        success: false,
+        message: 'Password must be between 6 and 128 characters long.',
+      });
+      return;
+    }
+
+    if (!PASSWORD_COMPLEXITY_REGEX.test(password)) {
+      res.status(400).json({
+        success: false,
+        message: 'Password must contain at least one letter and at least one number for security.',
+      });
+      return;
+    }
+
+    // 4. Validate Sector Enum
+    const validSector: EnterpriseSector = VALID_SECTORS.includes(sector as EnterpriseSector)
+      ? (sector as EnterpriseSector)
+      : 'Dairy';
 
     // Check if user already exists
-    const existingUser = await User.findOne({ phone: cleanPhone });
+    const existingUser = await User.findOne({ phone });
     if (existingUser) {
       res.status(409).json({
         success: false,
@@ -49,16 +98,16 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Hash password
+    // Hash password securely
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create user in MongoDB
     const user = new User({
-      fullName: fullName.trim(),
-      phone: cleanPhone,
+      fullName,
+      phone,
       password: hashedPassword,
-      sector: sector || 'Dairy',
+      sector: validSector,
       location: location || 'Varanasi, UP',
     });
 
@@ -85,7 +134,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Failed to create user account.',
+      message: 'Failed to create user account due to a server error.',
       error: error.message,
     });
   }
@@ -93,13 +142,13 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
 /**
  * POST /api/auth/login
- * Validates mobile number and password against MongoDB user collection and returns user details.
+ * Validates mobile number and password against MongoDB user collection with sanitization.
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { phone, password } = req.body;
+    let { phone, password } = req.body;
 
-    if (!phone || !password) {
+    if (typeof phone !== 'string' || typeof password !== 'string') {
       res.status(400).json({
         success: false,
         message: 'Mobile number and Password are required.',
@@ -107,10 +156,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const cleanPhone = phone.trim();
+    phone = phone.replace(/\D/g, '');
+    password = password.trim();
+
+    // Validate phone pattern
+    if (!phone || !PHONE_REGEX.test(phone)) {
+      res.status(400).json({
+        success: false,
+        message: 'Please enter a valid 10-digit mobile number.',
+      });
+      return;
+    }
+
+    if (!password) {
+      res.status(400).json({
+        success: false,
+        message: 'Password is required.',
+      });
+      return;
+    }
 
     // Find user by phone
-    const user = await User.findOne({ phone: cleanPhone });
+    const user = await User.findOne({ phone });
     if (!user) {
       res.status(401).json({
         success: false,

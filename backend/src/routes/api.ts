@@ -4,13 +4,14 @@ import { createTransaction } from '../controllers/transactionController';
 import { getLiveTelemetry, triggerAnomaly } from '../controllers/telemetryController';
 import { getEnterpriseAdvisory } from '../controllers/analyticsController';
 import { signup, login } from '../controllers/authController';
+import { authLimiter } from '../middleware/rateLimiter';
 import { seedDatabase } from '../seed';
 
 const router = Router();
 
-// User Authentication routes
-router.post('/auth/signup', signup);
-router.post('/auth/login', login);
+// User Authentication routes with rate limiting protection
+router.post('/auth/signup', authLimiter, signup);
+router.post('/auth/login', authLimiter, login);
 
 // Enterprise routes
 router.get('/enterprises', getAllEnterprises);
