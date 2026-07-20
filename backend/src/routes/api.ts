@@ -1,14 +1,20 @@
 import { Router, Request, Response } from 'express';
-import { getAllEnterprises, getEnterpriseById } from '../controllers/enterpriseController';
+import { getAllEnterprises, getEnterpriseById, getEnterpriseByUserId } from '../controllers/enterpriseController';
 import { createTransaction } from '../controllers/transactionController';
 import { getLiveTelemetry, triggerAnomaly } from '../controllers/telemetryController';
 import { getEnterpriseAdvisory } from '../controllers/analyticsController';
+import { signup, login } from '../controllers/authController';
 import { seedDatabase } from '../seed';
 
 const router = Router();
 
+// User Authentication routes
+router.post('/auth/signup', signup);
+router.post('/auth/login', login);
+
 // Enterprise routes
 router.get('/enterprises', getAllEnterprises);
+router.get('/enterprises/user/:userId', getEnterpriseByUserId);
 router.get('/enterprises/:id', getEnterpriseById);
 
 // Transaction routes

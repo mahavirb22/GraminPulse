@@ -3,13 +3,31 @@ import { ActionableAdvisory } from '../components/ActionableAdvisory';
 import { TelemetryWidget } from '../components/TelemetryWidget';
 import { TransactionModal } from '../components/TransactionModal';
 
-export const MicroEnterpriseDashboard = ({ onNavigateToProfile, user, transactions = [], onAddTransaction }) => {
+export const MicroEnterpriseDashboard = ({
+  onNavigateToProfile,
+  user,
+  enterprise,
+  transactions = [],
+  onAddTransaction,
+}) => {
   const [modalState, setModalState] = useState({ isOpen: false, type: 'income' });
   const [reportGenerated, setReportGenerated] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [timeframe, setTimeframe] = useState('Last 30 Days');
 
-  const farmerName = user?.name || 'Ramesh Kumar';
+  const farmerName = user?.name || user?.fullName || 'Farmer User';
+  const enterpriseName = enterprise?.name || `${farmerName}'s Enterprise`;
+
+  // Dynamic calculations from transactions list
+  const totalCashIn = transactions
+    .filter((t) => t.type === 'income')
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  const totalCashOut = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  const netSurplus = totalCashIn - totalCashOut;
 
   /**
    * Handle transaction submission from modal.
@@ -28,15 +46,15 @@ export const MicroEnterpriseDashboard = ({ onNavigateToProfile, user, transactio
 GRAMINPULSE RURAL FINTECH UI - MONTHLY SUMMARY REPORT
 ================================================
 Generated for: ${farmerName}
+Enterprise: ${enterpriseName}
 Date: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}
-Enterprise: Ganga Dairy Coop (ID: #GP-8842)
-Location: Varanasi, UP
+Location: ${user?.location || 'Varanasi, UP'}
 ------------------------------------------------
 FINANCIAL OVERVIEW:
-- Total Cash In:  ₹52,000 (+12% vs last month)
-- Total Cash Out: ₹9,500
-- Net Surplus:    ₹42,500
-- Status:         Stable
+- Total Cash In:  ₹${totalCashIn.toLocaleString()}
+- Total Cash Out: ₹${totalCashOut.toLocaleString()}
+- Net Surplus:    ₹${netSurplus.toLocaleString()}
+- Recorded Logs: ${transactions.length} items
 
 IOT TELEMETRY DIAGNOSTICS:
 - Cold Storage Temp:  4.2°C (Target: 4.0°C - STABLE)
@@ -69,11 +87,20 @@ Report powered by GraminPulse Explainable AI (XAI)
    * Export CSV option in bento menu
    */
   const handleExportCSV = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Date,Category,Type,Amount\nToday,Milk Supply,Income,42500\nYesterday,Cattle Feed,Expense,3200\n15 Jul,Govt Subsidy,Income,12000\n";
+    let csvRows = ['Date,Category,Type,Amount'];
+    if (transactions.length > 0) {
+      transactions.forEach((t) => {
+        csvRows.push(`"${t.date}","${t.category}","${t.type}",${t.amount}`);
+      });
+    } else {
+      csvRows.push('No data,No data,No data,0');
+    }
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.join('\n');
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "CashFlow_Data.csv");
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${farmerName}_CashFlow.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -91,7 +118,7 @@ Report powered by GraminPulse Explainable AI (XAI)
           </p>
         </div>
         <div className="bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full text-xs font-label font-semibold border border-primary-fixed-dim">
-          Ganga Dairy Coop (#GP-8842)
+          {enterpriseName}
         </div>
       </div>
 
@@ -103,9 +130,9 @@ Report powered by GraminPulse Explainable AI (XAI)
               Cash Flow ({timeframe})
             </h2>
             <div className="font-headline text-3xl font-bold text-on-surface flex items-baseline gap-2">
-              ₹42,500{' '}
+              ₹{netSurplus.toLocaleString()}{' '}
               <span className="font-label text-xs font-semibold text-secondary-fixed bg-primary px-2.5 py-0.5 rounded-full">
-                +12% vs last month
+                {transactions.length > 0 ? 'Active Stream' : 'Fresh Account'}
               </span>
             </div>
           </div>
@@ -206,11 +233,15 @@ Report powered by GraminPulse Explainable AI (XAI)
         <div className="flex justify-start gap-6 mt-4 pt-3 border-t border-surface-variant/50">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-primary" />
-            <span className="font-label text-xs text-on-surface-variant">Cash In (₹52,000)</span>
+            <span className="font-label text-xs text-on-surface-variant">
+              Cash In (₹{totalCashIn.toLocaleString()})
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full border border-inverse-primary border-dashed" />
-            <span className="font-label text-xs text-on-surface-variant">Cash Out (₹9,500)</span>
+            <span className="font-label text-xs text-on-surface-variant">
+              Cash Out (₹{totalCashOut.toLocaleString()})
+            </span>
           </div>
         </div>
       </div>
@@ -289,24 +320,30 @@ Report powered by GraminPulse Explainable AI (XAI)
             </span>
           </div>
           <div className="flex flex-col gap-2">
-            {transactions.slice(0, 3).map((tx) => (
-              <div
-                key={tx.id}
-                className="flex justify-between items-center text-xs p-2 rounded-lg bg-surface-container-low"
-              >
-                <div>
-                  <div className="font-semibold text-on-surface">{tx.category}</div>
-                  <div className="text-on-surface-variant text-[11px]">{tx.date}</div>
-                </div>
+            {transactions.length > 0 ? (
+              transactions.slice(0, 3).map((tx) => (
                 <div
-                  className={`font-semibold ${
-                    tx.type === 'income' ? 'text-primary' : 'text-error'
-                  }`}
+                  key={tx.id}
+                  className="flex justify-between items-center text-xs p-2 rounded-lg bg-surface-container-low"
                 >
-                  {tx.type === 'income' ? '+' : '-'}₹{tx.amount.toLocaleString()}
+                  <div>
+                    <div className="font-semibold text-on-surface">{tx.category}</div>
+                    <div className="text-on-surface-variant text-[11px]">{tx.date}</div>
+                  </div>
+                  <div
+                    className={`font-semibold ${
+                      tx.type === 'income' ? 'text-primary' : 'text-error'
+                    }`}
+                  >
+                    {tx.type === 'income' ? '+' : '-'}₹{Number(tx.amount || 0).toLocaleString()}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="py-4 text-center text-xs text-on-surface-variant font-body bg-surface-container-low rounded-lg">
+                No logs recorded yet. Click "Log Income" or "Log Expense" to add your first transaction.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

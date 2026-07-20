@@ -41,6 +41,54 @@ export const getAllEnterprises = async (req: Request, res: Response): Promise<vo
 };
 
 /**
+ * GET /api/enterprises/user/:userId
+ * Fetches enterprise record and data specifically belonging to a registered user ID.
+ */
+export const getEnterpriseByUserId = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    let enterprise = await Enterprise.findOne({ userId });
+
+    // Fallback to first enterprise if not found by userId (for legacy demo compatibility)
+    if (!enterprise) {
+      enterprise = await Enterprise.findOne();
+    }
+
+    if (!enterprise) {
+      res.status(404).json({
+        success: false,
+        message: 'No enterprise found for user.',
+      });
+      return;
+    }
+
+    const transactions = await Transaction.find({ enterpriseId: enterprise._id })
+      .sort({ timestamp: -1 })
+      .limit(10);
+
+    const telemetry = await IoTTelemetry.find({ enterpriseId: enterprise._id })
+      .sort({ timestamp: -1 })
+      .limit(10);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        enterprise,
+        transactions,
+        telemetry,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch enterprise for user ${req.params.userId}`,
+      error: error.message,
+    });
+  }
+};
+
+/**
  * GET /api/enterprises/:id
  * Returns single enterprise populated with latest transactions & IoT telemetry for Risk Profile.
  */

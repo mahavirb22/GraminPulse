@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
+import { UserAvatar } from './UserAvatar';
 import { NotificationModal } from './NotificationModal';
 
-export const COMMON_FARMER_AVATAR =
-  'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=250&q=80';
-
 /**
- * Layout wrapper handling view state, common user profile, notification history modal, and logout.
+ * Layout wrapper handling view state, initial letter avatar, notification history modal, and logout.
  */
 export const Layout = ({
   activeView,
@@ -23,7 +21,7 @@ export const Layout = ({
     { id: 'profile', label: 'Risk Profile', icon: 'shield_person' },
   ];
 
-  const userName = user?.name || 'Ramesh Kumar';
+  const userName = user?.name || user?.fullName || 'Farmer User';
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-on-background">
@@ -70,11 +68,8 @@ export const Layout = ({
           </button>
 
           <div className="flex items-center gap-3 pl-3 border-l border-outline-variant/30">
-            <img
-              className="w-8 h-8 rounded-full object-cover border border-outline-variant/40 shadow-sm"
-              src={COMMON_FARMER_AVATAR}
-              alt="Farmer profile"
-            />
+            {/* Capitalized First Letter Avatar */}
+            <UserAvatar name={userName} size="sm" />
             <span className="font-label text-xs font-semibold text-on-surface">{userName}</span>
             {onLogout && (
               <button
@@ -107,11 +102,7 @@ export const Layout = ({
             <span className="material-symbols-outlined">notifications</span>
             <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
           </button>
-          <img
-            className="w-8 h-8 rounded-full object-cover border border-outline-variant/30"
-            src={COMMON_FARMER_AVATAR}
-            alt="Farmer profile"
-          />
+          <UserAvatar name={userName} size="sm" />
           {onLogout && (
             <button onClick={onLogout} className="p-1 text-error" title="Sign Out">
               <span className="material-symbols-outlined text-sm">logout</span>

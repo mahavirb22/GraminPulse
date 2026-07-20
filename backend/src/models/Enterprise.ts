@@ -1,9 +1,10 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 export type EnterpriseSector = 'Dairy' | 'Poultry' | 'Food Processing' | 'Retail' | 'Agriculture' | 'Artisan';
 export type RiskLevel = 'Stable' | 'Warning' | 'Action Required' | 'Elevated Risk';
 
 export interface IEnterprise extends Document {
+  userId?: Types.ObjectId;
   name: string;
   sector: EnterpriseSector;
   location: string;
@@ -15,6 +16,11 @@ export interface IEnterprise extends Document {
 
 const EnterpriseSchema = new Schema<IEnterprise>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
     name: {
       type: String,
       required: [true, 'Enterprise name is required'],
